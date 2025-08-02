@@ -1,27 +1,59 @@
 
+import { db } from '../db';
+import { boardingSchoolsTable, schoolSportsTable, schoolScholarshipsTable } from '../db/schema';
 import { type CreateBoardingSchoolInput, type BoardingSchool } from '../schema';
 
-export async function createBoardingSchool(input: CreateBoardingSchoolInput): Promise<BoardingSchool> {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is creating a new boarding school with its sports and scholarships.
-    // Should:
-    // 1. Insert the school into boarding_schools table
-    // 2. Insert associated sports into school_sports table
-    // 3. Insert associated scholarships into school_scholarships table
-    // 4. Return the complete school data with relations
-    return Promise.resolve({
-        id: 0, // Placeholder ID
+export const createBoardingSchool = async (input: CreateBoardingSchoolInput): Promise<BoardingSchool> => {
+  try {
+    // Insert the boarding school
+    const schoolResult = await db.insert(boardingSchoolsTable)
+      .values({
         name: input.name,
         description: input.description,
         region: input.region,
         cost_range: input.cost_range,
-        website_url: input.website_url || null,
-        contact_email: input.contact_email || null,
-        contact_phone: input.contact_phone || null,
-        address: input.address || null,
-        profile_content: input.profile_content || null,
-        is_featured: input.is_featured,
-        created_at: new Date(),
-        updated_at: new Date()
-    } as BoardingSchool);
-}
+        website_url: input.website_url,
+        contact_email: input.contact_email,
+        contact_phone: input.contact_phone,
+        address: input.address,
+        profile_content: input.profile_content,
+        is_featured: input.is_featured
+      })
+      .returning()
+      .execute();
+
+    const school = schoolResult[0];
+
+    // Insert associated sports if provided
+    if (input.sports && input.sports.length > 0) {
+      await db.insert(schoolSportsTable)
+        .values(
+          input.sports.map(sport => ({
+            school_id: school.id,
+            sport_type: sport.sport_type,
+            is_primary: sport.is_primary
+          }))
+        )
+        .execute();
+    }
+
+    // Insert associated scholarships if provided
+    if (input.scholarships && input.scholarships.length > 0) {
+      await db.insert(schoolScholarshipsTable)
+        .values(
+          input.scholarships.map(scholarship => ({
+            school_id: school.id,
+            scholarship_type: scholarship.scholarship_type,
+            description: scholarship.description,
+            requirements: scholarship.requirements
+          }))
+        )
+        .execute();
+    }
+
+    return school;
+  } catch (error) {
+    console.error('Boarding school creation failed:', error);
+    throw error;
+  }
+};

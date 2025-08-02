@@ -1,12 +1,20 @@
 
+import { db } from '../db';
+import { boardingSchoolsTable } from '../db/schema';
 import { type BoardingSchool } from '../schema';
+import { eq, desc } from 'drizzle-orm';
 
-export async function getFeaturedSchools(): Promise<BoardingSchool[]> {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is fetching featured boarding schools for homepage display.
-    // Should:
-    // - Filter schools where is_featured = true
-    // - Include basic school information and relations
-    // - Order by updated_at DESC or a specific featured order
-    return Promise.resolve([]);
-}
+export const getFeaturedSchools = async (): Promise<BoardingSchool[]> => {
+  try {
+    const results = await db.select()
+      .from(boardingSchoolsTable)
+      .where(eq(boardingSchoolsTable.is_featured, true))
+      .orderBy(desc(boardingSchoolsTable.updated_at))
+      .execute();
+
+    return results;
+  } catch (error) {
+    console.error('Failed to get featured schools:', error);
+    throw error;
+  }
+};
